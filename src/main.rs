@@ -75,9 +75,9 @@ impl SessionCallbacks<TestBackrollConfig> for TestSessionCallbacks{
         (self.players.clone(), None)
     }
 
-    fn load_state(&mut self, players : &Vec<Player>)
+    fn load_state(&mut self, players : Vec<Player>)
     {
-        self.players = players.clone();
+        self.players = players;
     }
     
     fn advance_frame(&mut self, input : GameInput<Input>)
@@ -114,6 +114,8 @@ pub fn render_player(player : & Player)
 
 #[macroquad::main("BasicShapes")]
 async fn main() {
+    let args: Vec<String> = std::env::args().collect();
+
     // do logging
     tracing_subscriber::fmt()
         .with_level(true)
@@ -127,11 +129,17 @@ async fn main() {
     
     let task_pool = TaskPool::new();
 
-    // will panic if fails to bind :)
-    let connection_manager = UdpManager::bind(task_pool.clone(), "127.0.0.1:420").unwrap();
+    let (our_socket, peer_socket) =
+        if args.len() == 1 {
+            println!("Peer 1");
+            ("127.0.0.1:7777", "127.0.0.1:7778")
+        } else {
+            println!("Peer 2");
+            ("127.0.0.1:7778", "127.0.0.1:7777")
+        };
 
-    // leads to memory exhaustion if someone sends a shitton of packets
-    let connect_config = UdpConnectionConfig::unbounded("127.0.0.1:421".parse().unwrap());
+    let connection_manager = UdpManager::bind(task_pool.clone(), our_socket).unwrap();
+    let connect_config = UdpConnectionConfig::unbounded(peer_socket.parse().unwrap());
 
     // actual abstraction layer part
     let remote_peer = connection_manager.connect(connect_config);
@@ -189,7 +197,10 @@ async fn main() {
             }
         }
 
-        session.add_local_input(callbacks.players[0].handle, local_input);
+        match session.add_local_input(callbacks.players[0].handle, local_input) {
+            Ok(()) => {},
+            Err(e) => println!("{:?}", e)
+        }
 
         session.advance_frame(&mut callbacks);
 
