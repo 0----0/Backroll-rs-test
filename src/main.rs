@@ -15,7 +15,7 @@ pub struct Player {
     position: Vec2,
     velocity: Vec2,
     size: Vec2,
-    handle: BackrollPlayerHandle, // the network id 
+    handle: PlayerHandle, // the network id 
 }
 
 bitflags! {
@@ -58,7 +58,7 @@ pub fn player_physics_update(player : &mut Player, input : Input)
 
 struct TestBackrollConfig;
 
-impl BackrollConfig for TestBackrollConfig{
+impl Config for TestBackrollConfig{
     type Input = Input;
     type State = Vec<Player>;
     const MAX_PLAYERS_PER_MATCH: usize = 2;
@@ -93,9 +93,9 @@ impl SessionCallbacks<TestBackrollConfig> for TestSessionCallbacks{
         }
     }
 
-    fn handle_event(&mut self, event : BackrollEvent)
+    fn handle_event(&mut self, event : Event)
     {
-        println!("This isnt implemented yet lmao.");
+        println!("Event: {:?}", event);
     }
 }
 
@@ -147,8 +147,8 @@ async fn main() {
     // backroll config
 
     let mut session_builder = P2PSession::<TestBackrollConfig>::build();
-    let local_handle = session_builder.add_player(BackrollPlayer::Local);
-    let online_handle = session_builder.add_player(BackrollPlayer::Remote(remote_peer));
+    let local_handle = session_builder.add_player(backroll::Player::Local);
+    let online_handle = session_builder.add_player(backroll::Player::Remote(remote_peer));
 
     // set up the actual game
 
