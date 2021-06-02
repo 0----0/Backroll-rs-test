@@ -129,8 +129,10 @@ async fn main() {
     
     let task_pool = TaskPool::new();
 
+    let flipped = args.len() == 1;
+
     let (our_socket, peer_socket) =
-        if args.len() == 1 {
+        if !flipped {
             println!("Peer 1");
             ("127.0.0.1:7777", "127.0.0.1:7778")
         } else {
@@ -147,8 +149,15 @@ async fn main() {
     // backroll config
 
     let mut session_builder = P2PSession::<TestBackrollConfig>::build();
-    let local_handle = session_builder.add_player(backroll::Player::Local);
-    let online_handle = session_builder.add_player(backroll::Player::Remote(remote_peer));
+    let (local_handle, online_handle) = if !flipped {
+        let local_handle = session_builder.add_player(backroll::Player::Local);
+        let online_handle = session_builder.add_player(backroll::Player::Remote(remote_peer));
+        (local_handle, online_handle)
+    } else {
+        let online_handle = session_builder.add_player(backroll::Player::Remote(remote_peer));
+        let local_handle = session_builder.add_player(backroll::Player::Local);
+        (local_handle, online_handle)
+    };
 
     // set up the actual game
 
@@ -168,7 +177,7 @@ async fn main() {
 
     // setting the "gamestate" in the callbacks
     let mut callbacks = TestSessionCallbacks{
-        players: vec![local_player, online_player],
+        players: if !flipped { vec![local_player, online_player] } else { vec![online_player, local_player] },
     };
 
     // start the actual session (can fail)
@@ -197,7 +206,7 @@ async fn main() {
             }
         }
 
-        match session.add_local_input(callbacks.players[0].handle, local_input) {
+        match session.add_local_input(local_handle, local_input) {
             Ok(()) => {},
             Err(e) => println!("{:?}", e)
         }
