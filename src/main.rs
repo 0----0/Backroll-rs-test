@@ -206,12 +206,14 @@ async fn main() {
             }
         }
 
-        match session.add_local_input(local_handle, local_input) {
-            Ok(()) => {},
-            Err(e) => println!("{:?}", e)
-        }
+        session.poll(&mut callbacks);
 
-        session.advance_frame(&mut callbacks);
+        match session.add_local_input(local_handle, local_input) {
+            Ok(()) => {
+                session.advance_frame(&mut callbacks);
+            },
+            Err(e) => println!("Failure adding inputs: {:?}", e)
+        }
 
         // render players
         {
